@@ -3,9 +3,6 @@ const randomBtn = document.getElementById("random-btn");
 const recipeDisplay = document.getElementById("recipe-display");
 
 // This function creates a list of ingredients for the recipe from the API data
-// It loops through the ingredients and measures, up to 20, and returns an HTML string
-// that can be used to display them in a list format
-// If an ingredient is empty or just whitespace, it skips that item 
 function getIngredientsHtml(recipe) {
   let html = "";
   for (let i = 1; i <= 20; i++) {
@@ -32,25 +29,20 @@ function renderRecipe(recipe) {
 
 // This function gets a random recipe from the API and shows it
 async function fetchAndDisplayRandomRecipe() {
-  recipeDisplay.innerHTML = "<p>Loading...</p>"; // Show loading message
+  recipeDisplay.innerHTML = "<p>Loading...</p>";
   try {
-    // Fetch a random recipe from the MealDB API
-    const res = await fetch('www.themealdb.com/api/json/v1/1/random.php'); // Replace with the actual API URL
-    const data = await res.json(); // Parse the JSON response
-    const recipe = data.meals[0]; // Get the first recipe from the response
-
+    const res = await fetch('https://www.themealdb.com/api/json/v1/1/random.php');
+    const data = await res.json();
+    const recipe = data.meals[0];
+    renderRecipe(recipe);
   } catch (error) {
     recipeDisplay.innerHTML = "<p>Sorry, couldn't load a recipe.</p>";
+    console.error(error);
   }
 }
 
-
 // --- Event listeners ---
+randomBtn.addEventListener("click", fetchAndDisplayRandomRecipe);
 
-// When the button is clicked, get and show a new random recipe
-randomBtn.addEventListener("click", () => {
-  fetchAndDisplayRandomRecipe();
-  
-});
-
-// When the page loads, show a random recipe right away
+// Optional: Load a recipe on page load
+window.addEventListener("DOMContentLoaded", fetchAndDisplayRandomRecipe);
