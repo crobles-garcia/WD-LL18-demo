@@ -1,8 +1,13 @@
-// --- DOM elements ---
+// DOM elements
 const randomBtn = document.getElementById("random-btn");
 const recipeDisplay = document.getElementById("recipe-display");
+const remixBtn = document.getElementById("remix-btn");
+const remixTheme = document.getElementById("remix-theme");
+const remixOutput = document.getElementById("remix-output");
 
-// This function creates a list of ingredients for the recipe from the API data
+let currentRecipe = null;
+
+// Create ingredient list HTML from recipe data
 function getIngredientsHtml(recipe) {
   let html = "";
   for (let i = 1; i <= 20; i++) {
@@ -13,7 +18,7 @@ function getIngredientsHtml(recipe) {
   return html;
 }
 
-// This function displays the recipe on the page
+// Render recipe in DOM
 function renderRecipe(recipe) {
   recipeDisplay.innerHTML = `
     <div class="recipe-title-row">
@@ -27,22 +32,73 @@ function renderRecipe(recipe) {
   `;
 }
 
-// This function gets a random recipe from the API and shows it
+// Fetch and show random recipe
 async function fetchAndDisplayRandomRecipe() {
   recipeDisplay.innerHTML = "<p>Loading...</p>";
   try {
-    const res = await fetch('https://www.themealdb.com/api/json/v1/1/random.php');
+    const res = await fetch("https://www.themealdb.com/api/json/v1/1/random.php");
     const data = await res.json();
     const recipe = data.meals[0];
+    currentRecipe = recipe;
     renderRecipe(recipe);
-  } catch (error) {
+  } catch (err) {
     recipeDisplay.innerHTML = "<p>Sorry, couldn't load a recipe.</p>";
+    console.error(err);
+  }
+}
+
+// Remix the current recipe with a selected theme
+async function remixRecipe() {
+  if (!currentRecipe) {
+    remixOutput.textContent = "Please load a recipe first!";
+    return;
+  }
+
+  remixOutput.textContent = "Remixing...";
+
+  const theme = remixTheme.value;
+  const ingredientsList = getIngredientsHtml(currentRecipe).replace(/<[^>]+>/g, '').split('\n').join(', ');
+  const instructions = currentRecipe.strInstructions;
+
+  const prompt = `You are a fun and creative chef. Remix the following recipe using this theme: "${theme}". 
+Keep it short, fun, and doable. Highlight changes to ingredients and instructions.
+
+Original Ingredients: ${ingredientsList}
+Original Instructions: ${instructions}
+
+Remixed Recipe:`;
+
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-4", // or "gpt-3.5-turbo"
+        messages: [
+          { role: "system", content: "You are a creative recipe remixer." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.8,
+        max_tokens: 500
+      })
+    });
+
+    const data = await response.json();
+    const reply = data.choices[0].message.content.trim();
+    remixOutput.textContent = reply;
+  } catch (error) {
+    remixOutput.textContent = "Sorry! Couldn't remix the recipe.";
     console.error(error);
   }
 }
 
-// --- Event listeners ---
+// Event listeners
 randomBtn.addEventListener("click", fetchAndDisplayRandomRecipe);
+remixBtn.addEventListener("click", remixRecipe);
 
-// Optional: Load a recipe on page load
+// Load recipe on page load
 window.addEventListener("DOMContentLoaded", fetchAndDisplayRandomRecipe);
